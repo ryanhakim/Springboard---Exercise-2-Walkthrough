@@ -1,0 +1,95 @@
+# Springboard---Exercise-2-Walkthrough
+Basic Data Manipulation
+
+##Introduction
+This document offers possible solutions to Springboard's Data Wrangling Exercise 2. In this exercise, you'll work with one of the most popular starter data sets in data science, the Titanic data set. This is a data set that records various attributes of passengers on the Titanic, including who survived and who didn’t. Packages required are `dplyr` and `tidyr`. The [description of the data set](https://www.kaggle.com/c/titanic/data) is found on the Kaggle Website. 
+
+The data is located in titanic_original.csv. For questions or alternative solutions, please send me a message.
+
+##Load the data in RStudio
+
+```{r}
+#--- load packages ---
+library(dplyr)
+library(tidyr)
+
+#---- load data, create data frame, and view ---
+df <- read.csv('titanic_original.csv')
+data <- tbl_df(df)
+data %>% View()
+```
+
+##1: Port of embarkation
+The `embarked` column has some missing values, which are known to correspond to passengers who actually embarked at Southampton. Find the missing values and replace them with S. _(Caution: Sometimes a missing value might be read into R as a blank or empty string.)_
+
+```{r}
+#--- Deal with missing values on embarked column ---
+
+#see how many missing values exist. It looks like there are three.
+summary(data$embarked)
+
+#replace missing values with "s" 
+data$embarked[data$embarked == ""] <- "S"
+```
+
+##2: Age
+You’ll notice that a lot of the values in the `Age` column are missing. While there are many ways to fill these missing values, using the mean or median of the rest of the values is quite common in such cases.
+
+- Calculate the mean of the Age column and use that value to populate the missing values
+- Think about other ways you could have populated the missing values in the age column. Why would you pick any of those over the mean (or not)?
+
+```{r}
+#--- Age --- 
+
+#consider what "fill" variable to use. Median value is closer to the central tendancy
+data %>% 
+  group_by(age) %>% 
+  summarise(cnt = n()) %>% 
+  arrange(desc(cnt)) %>% 
+  print(n = Inf)
+
+```
+###or view it graphically too. 
+```{r echo = TRUE}
+hist(data$age)
+```
+
+```{r}
+#Population is skewed right, so we ought to use median age
+median_age <- median(data$age, na.rm = TRUE)
+data$age[is.na(data$age)] <- median_age
+```
+
+##3: Lifeboat
+You’re interested in looking at the distribution of passengers in different lifeboats, but as we know, many passengers did not make it to a boat :-( This means that there are a lot of missing values in the boat column. Fill these empty slots with a dummy value e.g. the string _'None'_ or _'NA'_
+
+```{r}
+#--- Assign "None" if passenger did not make it onto a lifeboat ---
+
+#notice the levels here, there are 28 levels in this factor column
+data %>% 
+  group_by(boat) %>% 
+  summarise(cnt = n()) %>% 
+  arrange(desc(cnt)) %>% 
+  print(n = Inf)
+
+#assign "None" to first level
+levels(data$boat)[1] <- "None"
+```
+
+##4: Cabin
+You notice that many passengers don’t have a cabin number associated with them.
+
+- Does it make sense to fill missing cabin numbers with a value?
+- What does a missing value here mean?
+
+You have a hunch that the fact that the cabin number is missing might be a useful indicator of survival. Create a new column `has_cabin_number` which has _1_ if there is a cabin number, and _0_ otherwise.
+
+```{r}
+#--- add cabin number if one exists, bind, then reorder columns ---
+has_cabin_number <- as.numeric(data$cabin != "")
+data <- cbind(data, has_cabin_number)
+data <- data[, c(1:10, 15, 11:14)]
+```
+
+##End
